@@ -1,0 +1,105 @@
+System info
+===========
+
+This is a firmware recipe for GL.iNet GL-AP1300 routers and access points
+using arm32 Arachsys Linux. These have a 4-core Qualcom IPQ4018 SoC with
+256MB RAM, 128MB NAND flash, dual gigabit NICs and dual 2.4GHz and 5GHz
+ath10k wifi.
+
+The build script requires a host which can run arm32 binaries in a chroot,
+either natively or under emulation using binfmt-misc. It fetches the latest
+vendor bootloader, constructs the rootfs image, fetches/patches/builds the
+required tools and kernel, then constructs images ready to flash or boot
+over tftp.
+
+Upstream kernel support for ipq40xx is very limited, so we fetch and apply
+openwrt patches to the upstream kernel source before building.
+
+
+Flashing the bootloader
+-----------------------
+
+Power on the router while holding the recessed reset button. The power
+light will flash five times then illuminate continuously. Release the reset
+button. After a few seconds, the power light will start to blink quickly.
+
+The bootloader is now running a recovery web server, accessible via the LAN
+ethernet port. From the factory, this will be on 192.168.1.1; if the u-boot
+environment has been updated as below, it will be on 172.16.0.1. The
+bin/uboot.img file can be uploaded at http://192.168.1.1/uboot.html or
+http://172.16.0.1/uboot.html respectively.
+
+Alternatively, from linux where the u-boot partition is mtd6, use
+
+  flashcp bin/uboot.img /dev/mtd6
+
+but this may not be possible if mtd6 is write-protected.
+
+The latest bootloader release merges a number of my cosmetic fixes and
+should be updated on all devices from the factory.
+
+
+Flashing the firmware
+---------------------
+
+The combined kernel + rootfs NAND image in bin/image.ubi can be flashed
+through the http://192.168.1.1/ or http://172.16.0.1/ recovery web
+interface. However, this wipes the block erase counters used for
+wear-levelling, so it is better to flash from a tftp-booted linux if
+possible.
+
+To flash bin/image.ubi from linux where the large NAND flash device is
+/dev/mtd8, use
+
+  ubidetach -m 8
+  ubiformat -f bin/image.ubi /dev/mtd8
+  ubiattach -d 0 -m 8
+
+We reattach the UBI device after flashing it to ensure the rootfs is
+expanded to fill the available space.
+
+
+Fixing the u-boot environment
+-----------------------------
+
+The build recipe compiles a u-boot environment image bin/environ.img from
+the configuration in config/environ. To flash this from linux, use
+
+  flashcp bin/environ.img /dev/mtd5
+
+This moves the default IP address for the recovery web server and tftp
+client to 172.16.0.1, the default tftp server address to 172.16.0.2 and
+allows tftp boot to be triggered with the reset button.
+
+
+Booting from a tftp server
+--------------------------
+
+To tftp-boot with the fixed u-boot environment, first power on the router.
+Both lights will illuminate, then the WAN light will extinguish. At this
+point, press and hold the recessed reset button.
+
+After five seconds, the LAN interface will be configured with address
+172.16.0.1 and attempt to fetch the file gl-ap1300.itb by tftp from
+172.16.0.2. If it succeeds, the router will boot from this image.
+
+The directory /tmp/tftp can be exported using dnsmasq with
+
+  dnsmasq --enable-tftp --no-daemon --port=0 --tftp-root=/tmp/tftp
+
+and a suitable kernel + initramfs is built in bin/initramfs.itb using the
+same rootfs as the main firmware image. The power light will flash as this
+image is transferred. Once the image finishes booting and is accessible by
+ssh on 172.16.0.1, the WAN light will flash in a heartbeat pattern.
+
+
+Updating an existing installation
+---------------------------------
+
+The NAND flash need not be completely rewritten to update. The kernel can
+be replaced with
+
+  ubiupdatevol /dev/ubi0_0 bin/kernel.itb
+
+and the root filesystem is writeable so it can be updated with rsync. It is
+safer to test new kernels by tftp before flashing them.

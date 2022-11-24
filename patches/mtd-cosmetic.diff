@@ -1,0 +1,294 @@
+diff --git a/include/common.h b/include/common.h
+index 31b6cd1..7e1c213 100644
+--- a/include/common.h
++++ b/include/common.h
+@@ -95,7 +95,7 @@ extern "C" {
+ 
+ /* Error messages */
+ #define errmsg(fmt, ...)  ({                                                \
+-	fprintf(stderr, "%s: error!: " fmt "\n", PROGRAM_NAME, ##__VA_ARGS__); \
++	fprintf(stderr, "%s: error: " fmt "\n", PROGRAM_NAME, ##__VA_ARGS__); \
+ 	-1;                                                                 \
+ })
+ #define errmsg_die(fmt, ...) do {                                           \
+@@ -116,7 +116,7 @@ extern "C" {
+ 
+ /* Warnings */
+ #define warnmsg(fmt, ...) do {                                                \
+-	fprintf(stderr, "%s: warning!: " fmt "\n", PROGRAM_NAME, ##__VA_ARGS__); \
++	fprintf(stderr, "%s: warning: " fmt "\n", PROGRAM_NAME, ##__VA_ARGS__); \
+ } while(0)
+ 
+ /* for tagging functions that always exit */
+diff --git a/misc-utils/flashcp.c b/misc-utils/flashcp.c
+index 341c210..b6db04b 100644
+--- a/misc-utils/flashcp.c
++++ b/misc-utils/flashcp.c
+@@ -88,21 +88,17 @@ static NORETURN void showusage(bool error)
+ 	int level = error ? LOG_ERROR : LOG_NORMAL;
+ 
+ 	log_printf (level,
+-			"\n"
+-			"Flash Copy - Written by Abraham van der Merwe <abraham@2d3d.co.za>\n"
+-			"\n"
+-			"usage: %1$s [ -v | --verbose | -A | --erase-all ] <filename> <device>\n"
++			"Usage: %1$s [ -v | --verbose | -A | --erase-all ] <filename> <device>\n"
+ 			"       %1$s -h | --help\n"
+ 			"       %1$s -V | --version\n"
+ 			"\n"
+-			"   -h | --help      Show this help message\n"
+-			"   -v | --verbose   Show progress reports\n"
+-			"   -p | --partition Only copy different block from file to device\n"
+-			"   -A | --erase-all Erases the whole device regardless of the image size\n"
+-			"   -V | --version   Show version information and exit\n"
+-			"   <filename>       File which you want to copy to flash\n"
+-			"   <device>         Flash device to write to (e.g. /dev/mtd0, /dev/mtd1, etc.)\n"
+-			"\n",
++			"-h, --help          Show this help message\n"
++			"-v, --verbose       Show progress reports\n"
++			"-p, --partition     Only write blocks that differ between file and device\n"
++			"-A, --erase-all     Erase the whole device regardless of the image size\n"
++			"-V, --version       Show version information and exit\n"
++			"<filename>          File to copy to flash\n"
++			"<device>            Destination flash device\n",
+ 			PROGRAM_NAME);
+ 
+ 	exit (error ? EXIT_FAILURE : EXIT_SUCCESS);
+diff --git a/ubi-utils/ubiattach.c b/ubi-utils/ubiattach.c
+index 09f85af..862908f 100644
+--- a/ubi-utils/ubiattach.c
++++ b/ubi-utils/ubiattach.c
+@@ -64,9 +64,8 @@ static const char optionsstr[] =
+ "                      if the character device node does not exist)\n"
+ "-O, --vid-hdr-offset  VID header offset (do not specify this unless you really\n"
+ "                      know what you are doing, the default should be optimal)\n"
+-"-b, --max-beb-per1024 maximum expected bad block number per 1024 eraseblock.\n"
+-"                      The default value is correct for most NAND devices.\n"
+-"                      Allowed range is 0-768, 0 means the default kernel value.\n"
++"-b, --max-beb-per1024 reserved eraseblocks per 1024 (0 - 768, where 0 selects\n"
++"                      the kernel default, correct for most NAND devices)\n"
+ "-h, --help            print help message\n"
+ "-V, --version         print program version";
+ 
+@@ -75,17 +74,16 @@ static const char usage[] =
+ "\t[-m <MTD device number>] [-d <UBI device number>] [-p <path to device>]\n"
+ "\t[--mtdn=<MTD device number>] [--devn=<UBI device number>]\n"
+ "\t[--dev-path=<path to device>]\n"
+-"\t[--max-beb-per1024=<maximum bad block number per 1024 blocks>]\n"
++"\t[--max-beb-per1024=<reserved eraseblocks per 1024>]\n"
+ "UBI control device defaults to " DEFAULT_CTRL_DEV " if not supplied.\n"
+ "Example 1: " PROGRAM_NAME " -p /dev/mtd0 - attach /dev/mtd0 to UBI\n"
+ "Example 2: " PROGRAM_NAME " -m 0 - attach MTD device 0 (mtd0) to UBI\n"
+ "Example 3: " PROGRAM_NAME " -m 0 -d 3 - attach MTD device 0 (mtd0) to UBI\n"
+ "           and create UBI device number 3 (ubi3)\n"
+ "Example 4: " PROGRAM_NAME " -m 1 -b 25 - attach /dev/mtd1 to UBI and reserve\n"
+-"           25*C/1024 eraseblocks for bad block handling, where C is the flash\n"
+-"           is total flash chip eraseblocks count, that is flash chip size in\n"
+-"           eraseblocks (including bad eraseblocks). E.g., if the flash chip\n"
+-"           has 4096 PEBs, 100 will be reserved.";
++"           25 * C / 1024 eraseblocks for bad block handling, where C is the\n"
++"           total flash size in physical eraseblocks, so if the flash chip\n"
++"           has 4096 PEBs, 100 will be reserved for remapping bad blocks";
+ 
+ static const struct option long_options[] = {
+ 	{ .name = "devn",            .has_arg = 1, .flag = NULL, .val = 'd' },
+@@ -136,7 +134,7 @@ static int parse_opt(int argc, char * const argv[])
+ 			args.max_beb_per1024 = simple_strtoul(optarg, &error);
+ 			if (error || args.max_beb_per1024 < 0 ||
+ 			    args.max_beb_per1024 > 768)
+-				return errmsg("bad maximum of expected bad blocks (0-768): \"%s\"", optarg);
++				return errmsg("bad reserved eraseblock count (0-768): \"%s\"", optarg);
+ 
+ 			if (args.max_beb_per1024 == 0)
+ 				warnmsg("the default kernel value will be used for maximum expected bad blocks");
+@@ -144,7 +142,6 @@ static int parse_opt(int argc, char * const argv[])
+ 			break;
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+@@ -224,8 +221,8 @@ int main(int argc, char * const argv[])
+ 	} else if (err == 1) {
+ 		/* The kernel did not support the 'max_beb_per1024' parameter */
+ 		warnmsg("the --max-beb-per1024=%d parameter was ignored", args.max_beb_per1024);
+-		normsg("the UBI kernel driver does not support does not allow changing the reserved PEBs count");
+-		normsg("the support was added in kernel version 3.7, probably you are running older kernel?");
++		normsg("the UBI kernel driver does not support changing the reserved PEBs count");
++		normsg("this feature was added in kernel version 3.7");
+ 		goto out_libubi;
+ 	}
+ 
+diff --git a/ubi-utils/ubiblock.c b/ubi-utils/ubiblock.c
+index 71e60b6..d74051a 100644
+--- a/ubi-utils/ubiblock.c
++++ b/ubi-utils/ubiblock.c
+@@ -79,12 +79,10 @@ static int parse_opt(int argc, char * const argv[])
+ 			args.node = optarg;
+ 			break;
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+ 		case '?':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			return -1;
+diff --git a/ubi-utils/ubicrc32.c b/ubi-utils/ubicrc32.c
+index 885f348..f3c7a63 100644
+--- a/ubi-utils/ubicrc32.c
++++ b/ubi-utils/ubicrc32.c
+@@ -63,7 +63,6 @@ static int parse_opt(int argc, char * const argv[])
+ 
+ 		switch (key) {
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+diff --git a/ubi-utils/ubidetach.c b/ubi-utils/ubidetach.c
+index 29f721e..b4b0497 100644
+--- a/ubi-utils/ubidetach.c
++++ b/ubi-utils/ubidetach.c
+@@ -106,7 +106,6 @@ static int parse_opt(int argc, char * const argv[])
+ 			break;
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+diff --git a/ubi-utils/ubiformat.c b/ubi-utils/ubiformat.c
+index d1b12e4..4578a6e 100644
+--- a/ubi-utils/ubiformat.c
++++ b/ubi-utils/ubiformat.c
+@@ -203,12 +203,10 @@ static int parse_opt(int argc, char * const argv[])
+ 			exit(EXIT_SUCCESS);
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+ 		case '?':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			return -1;
+diff --git a/ubi-utils/ubimkvol.c b/ubi-utils/ubimkvol.c
+index b709b43..d85e176 100644
+--- a/ubi-utils/ubimkvol.c
++++ b/ubi-utils/ubimkvol.c
+@@ -170,13 +170,11 @@ static int parse_opt(int argc, char * const argv[])
+ 			break;
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+ 
+ 		case '?':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			return -1;
+diff --git a/ubi-utils/ubinfo.c b/ubi-utils/ubinfo.c
+index 29530be..eda69e2 100644
+--- a/ubi-utils/ubinfo.c
++++ b/ubi-utils/ubinfo.c
+@@ -116,7 +116,6 @@ static int parse_opt(int argc, char * const argv[])
+ 			break;
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+diff --git a/ubi-utils/ubinize.c b/ubi-utils/ubinize.c
+index ac8c1e5..fd7bfeb 100644
+--- a/ubi-utils/ubinize.c
++++ b/ubi-utils/ubinize.c
+@@ -351,7 +351,7 @@ static int read_section(const struct ubigen_info *ui, const char *sname,
+ 				      *img, sname);
+ 
+ 		normsg_cont("volume size was not specified in section \"%s\", assume"
+-			    " minimum to fit image \"%s\"", sname, *img);
++			    " minimum to fit image \"%s\": ", sname, *img);
+ 		util_print_bytes(vi->bytes, 1);
+ 		printf("\n");
+ 	}
+diff --git a/ubi-utils/ubirmvol.c b/ubi-utils/ubirmvol.c
+index 049e70d..cb65b4c 100644
+--- a/ubi-utils/ubirmvol.c
++++ b/ubi-utils/ubirmvol.c
+@@ -109,13 +109,11 @@ static int parse_opt(int argc, char * const argv[])
+ 			break;
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+ 
+ 		case '?':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			return -1;
+diff --git a/ubi-utils/ubirsvol.c b/ubi-utils/ubirsvol.c
+index 0854abc..cd474d3 100644
+--- a/ubi-utils/ubirsvol.c
++++ b/ubi-utils/ubirsvol.c
+@@ -137,13 +137,11 @@ static int parse_opt(int argc, char * const argv[])
+ 			break;
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+ 
+ 		case '?':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			return -1;
+diff --git a/ubi-utils/ubiscan.c b/ubi-utils/ubiscan.c
+index e040bab..9671fab 100644
+--- a/ubi-utils/ubiscan.c
++++ b/ubi-utils/ubiscan.c
+@@ -115,12 +115,10 @@ static int parse_opt(int argc, char * const argv[])
+             common_print_version();
+             exit(EXIT_SUCCESS);
+         case 'h':
+-            printf("%s\n\n", doc);
+             printf("%s\n\n", usage);
+             printf("%s\n", optionsstr);
+             exit(EXIT_SUCCESS);
+         case '?':
+-            printf("%s\n\n", doc);
+             printf("%s\n\n", usage);
+             printf("%s\n", optionsstr);
+             return -1;
+diff --git a/ubi-utils/ubiupdatevol.c b/ubi-utils/ubiupdatevol.c
+index 1b3239e..1b57f2a 100644
+--- a/ubi-utils/ubiupdatevol.c
++++ b/ubi-utils/ubiupdatevol.c
+@@ -109,13 +109,11 @@ static int parse_opt(int argc, char * const argv[])
+ 			break;
+ 
+ 		case 'h':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			exit(EXIT_SUCCESS);
+ 
+ 		case '?':
+-			printf("%s\n\n", doc);
+ 			printf("%s\n\n", usage);
+ 			printf("%s\n", optionsstr);
+ 			return -1;

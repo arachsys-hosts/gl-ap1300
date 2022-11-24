@@ -1,0 +1,48 @@
+/dts-v1/;
+
+/ {
+  description = "GL.iNet AP1300";
+  #address-cells = <1>;
+
+  images {
+    kernel {
+      description = "Kernel Image";
+      data = /incbin/("../linux/arch/arm/boot/Image.gz");
+      type = "kernel";
+      arch = "arm";
+      os = "linux";
+      compression = "gzip";
+      load = <0x80208000>;
+      entry = <0x80208000>;
+    };
+
+    fdt {
+      description = "Flat Device Tree";
+      data = /incbin/("../linux/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dtb");
+      type = "flat_dt";
+      arch = "arm";
+      compression = "none";
+    };
+
+    ramdisk {
+      description = "Initramfs";
+      data = /incbin/("../bin/initramfs.cpio.zst");
+      type = "ramdisk";
+      arch = "arm";
+      os = "linux";
+      compression = "none";
+      load = <00000000>;
+      entry = <00000000>;
+    };
+  };
+
+  configurations {
+    default = "config@ap.dk01.1-c2";
+    config@ap.dk01.1-c2 {
+      description = "Linux";
+      kernel = "kernel";
+      fdt = "fdt";
+      ramdisk = "ramdisk";
+    };
+  };
+};

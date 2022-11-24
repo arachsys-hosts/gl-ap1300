@@ -1,0 +1,15 @@
+baudrate 115200
+bootcmd if cmp 103f004 0 1; then tftpboot gl-ap1300.itb && bootm; else setenv fsbootargs "" && bootipq; fi
+bootdelay 1
+bootstopkey gl
+ethact eth0
+fileaddr 84000000
+filesize 400000
+flash_type 0
+ipaddr 172.16.0.1
+machid 8010100
+serverip 172.16.0.2
+stderr serial
+stdin serial
+stdout serial
+tftp_upgrade 0

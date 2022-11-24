@@ -1,0 +1,119 @@
+#!/bin/bash
+
+set -e -o pipefail
+shopt -s dotglob extglob globstar nullglob
+
+if (( $$ != 1 )); then
+  cd -- "${0%/*}"
+  mkdir -p bin
+
+  if [[ -d $IMGDIR/../arm32 ]]; then
+    export IMGDIR=$IMGDIR/../arm32
+  elif [[ -d $HOME/img/arm32 ]]; then
+    export IMGDIR=$HOME/img/arm32
+  else
+    echo "Unable to find arm32 images" >&2
+    exit 1
+  fi
+
+  if [[ ! -d rootfs ]]; then
+    trap 'rm -f -r rootfs' EXIT
+    pkg system rootfs dnsmasq hostap iproute2 iputils-ping iw ldns-tools \
+      kakoune mtr nftables openntpd openssh rsync shadow tcpdump tinymbim \
+      tmux wireguard
+    rm -f -r rootfs/{etc/resolv.conf,lib/{include,static},run,tmp,var}
+    mkdir -p rootfs/{dev,home/root,proc,run,sys,tmp}
+    cp -d -R etc rootfs && chmod 0600 rootfs/etc/shadow
+    ln -s run rootfs/var
+    trap - EXIT
+  fi
+
+  exec pkg shell -s . build bc bison dtc flex m4 perl -- \
+    env MAKEFLAGS=-j$((1 + $(nproc))) "/src/${0##*/}" "$@"
+fi
+
+if mkdir mtd-utils 2>/dev/null; then
+  trap 'rm -f -r mtd-utils' EXIT
+  pkg unpack -d mtd-utils \
+    https://infraroot.at/pub/mtd/mtd-utils-2.1.5.tar.bz2
+  printf '%s\0' patches/mtd-* | xargs -n 1 -0 pkg apply -d mtd-utils
+  trap - EXIT
+fi
+
+if mkdir openwrt 2>/dev/null; then
+  trap 'rm -f -r openwrt' EXIT
+  pkg unpack -d openwrt \
+    https://github.com/openwrt/openwrt/archive/c34eab6f.tar.gz
+  trap - EXIT
+fi
+
+if mkdir linux 2>/dev/null; then
+  trap 'rm -f -r linux' EXIT
+  pkg unpack -d linux \
+    https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.79.tar.xz
+  cp -r openwrt/target/linux/{generic,ipq40xx}/files/* linux
+  printf '%s\0' \
+    openwrt/target/linux/generic/{backport,pending,hack}-5.15/* \
+    openwrt/target/linux/ipq40xx/patches-5.15/* \
+    patches/linux-* | xargs -n 1 -0 pkg apply -d linux
+  printf '%s\0' openwrt/package/kernel/ath10k-ct/patches/*-nvmem-* \
+    | xargs -n 1 -0 pkg apply -d linux/drivers/net/wireless/ath/ath10k -p 2
+  trap - EXIT
+fi
+
+if mkdir u-boot 2>/dev/null; then
+  trap 'rm -f -r u-boot' EXIT
+  pkg unpack -d u-boot \
+    https://github.com/u-boot/u-boot/archive/refs/tags/v2022.10.tar.gz
+  trap - EXIT
+fi
+
+if [[ ! -f bin/uboot.img ]]; then
+  curl -o bin/uboot.img.tmp -L \
+    https://github.com/gl-inet/uboot-ipq40xx/raw/6913cdfb/uboot-gl-ap1300-\
+b1300-s1300-b2200-20220826-md5-b599d2fa9955ca701fc25e6d29659c86.bin
+  mv -f bin/uboot.img.tmp bin/uboot.img
+fi
+
+printf '\0\0\0\0' >bin/environ.img
+while read -r KEY VALUE; do
+  [[ -n $KEY ]] && printf '%s=%s\0' "$KEY" "$VALUE"
+done <config/environ >>bin/environ.img
+truncate -s 65536 bin/environ.img
+tail -c +5 bin/environ.img | gzip -c | tail -c 8 \
+  | dd bs=4 conv=notrunc count=1 of=bin/environ.img 2>/dev/null
+
+cp config/kernel.cfg linux/.config && echo 0 >linux/.version
+make -C linux olddefconfig Image ARCH=arm
+gzip -f -k -n -9 linux/arch/arm/boot/Image
+
+cpp -nostdinc -undef -x assembler-with-cpp -I linux/include -I linux/arch \
+    linux/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dts \
+  | dtc -O dtb -o linux/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dtb -
+
+cd mtd-utils
+bash configure --without-jffs --without-lzo \
+  UUID_CFLAGS=-I/lib/include/uuid UUID_LIBS=-luuid \
+  ZLIB_CFLAGS=-I/lib/include ZLIB_LIBS=-lz \
+  ZSTD_CFLAGS=-I/lib/include ZSTD_LIBS=-lzstd
+make flashcp mkfs.ubifs ubiattach ubidetach ubiformat \
+  ubinize ubiupdatevol
+cd -
+
+make -C u-boot tools-only_defconfig tools-only CC=cc \
+  CONFIG_TOOLS_MKEFICAPSULE=n SDL_CONFIG=false
+
+cp -f mtd-utils/{flashcp,ubiattach,ubidetach,ubiformat,ubiupdatevol} \
+  rootfs/bin
+ln -f -s etc/init rootfs/init
+tar -c -f bin/initramfs.cpio.zst --format=newc --strip-components=1 \
+  --zstd --options zstd:compression-level=9 rootfs
+tar -c -f - --format=newc @/dev/null >>bin/initramfs.cpio.zst
+rm -f rootfs/init
+
+u-boot/tools/mkimage -f config/initramfs.its bin/initramfs.itb
+u-boot/tools/mkimage -f config/kernel.its bin/kernel.itb
+
+mtd-utils/mkfs.ubifs -o bin/rootfs.ubifs -r rootfs -m 2048 -e 126976 \
+  -x zstd -c 1023
+mtd-utils/ubinize -o bin/image.ubi -m 2048 -p 131072 config/image.cfg
