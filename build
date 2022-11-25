@@ -23,7 +23,7 @@ if (( $$ != 1 )); then
       tmux wireguard
     rm -f -r rootfs/{etc/resolv.conf,lib/{include,static},run,tmp,var}
     mkdir -p rootfs/{dev,home/root,proc,run,sys,tmp}
-    cp -d -R etc rootfs && chmod 0600 rootfs/etc/shadow
+    cp -d -R -T etc/base rootfs/etc && chmod 0600 rootfs/etc/shadow
     ln -s run rootfs/var
     trap - EXIT
   fi

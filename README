@@ -15,6 +15,20 @@ over tftp.
 Upstream kernel support for ipq40xx is very limited, so we fetch and apply
 openwrt patches to the upstream kernel source before building.
 
+The u-boot bootloader, u-boot environment and ath10k wifi calibration data
+are stored in a 4MB partitioned NOR flash device which linux sees as
+/dev/mtd[0-7]. The large 128MB NAND flash appears as /dev/mtd8 and is split
+into two UBI volumes: a static 6MB ubi0:kernel for linux and a dynamic
+ubi0:rootfs for the ubifs root filesystem.
+
+Although the UBI layer provides wear-levelling, the system is configured
+never to write to flash during normal operation and boots with / mounted
+read-only. /var is symlinked to the tmpfs /run and syslog is redirected
+to dmesg using syslogd -k.
+
+There is no RTC so the clock reads 1970-01-01 00:00:00 UTC at boot; this is
+corrected using ntpd -s once the network is up and working.
+
 
 Flashing the bootloader
 -----------------------
@@ -89,8 +103,10 @@ The directory /tmp/tftp can be exported using dnsmasq with
 
 and a suitable kernel + initramfs is built in bin/initramfs.itb using the
 same rootfs as the main firmware image. The power light will flash as this
-image is transferred. Once the image finishes booting and is accessible by
-ssh on 172.16.0.1, the WAN light will flash in a heartbeat pattern.
+image is transferred. It then illuminates solidly as kernel is uncompressed
+and booted, flashes as userspace boots and generates an ephemeral ssh host
+key, then illuminates solidly again once boot is complete. The device is
+now accessible by ssh on 172.16.0.1.
 
 
 Updating an existing installation
@@ -101,5 +117,5 @@ be replaced with
 
   ubiupdatevol /dev/ubi0_0 bin/kernel.itb
 
-and the root filesystem is writeable so it can be updated with rsync. It is
-safer to test new kernels by tftp before flashing them.
+and the root filesystem can be mounted read-write and updated directly. It
+is safer to test new kernels by tftp before flashing them.
