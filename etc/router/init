@@ -53,9 +53,15 @@ syslogd -k
 ssh-keygen -A && $(type -P sshd)
 dnsmasq
 
-wwan /dev/cdc-wdm0 start
-hostapd -s -B /etc/ap0.conf /etc/ap1.conf
+if wwan /dev/cdc-wdm0 start; then
+  while true; do
+    while mbim /dev/cdc-wdm0 config; do read -t 30; done
+    logger -p daemon.warn -t watchdog 'Restarting wwan connection'
+    wwan /dev/cdc-wdm0 start
+  done <><(:) >/dev/null 2>&1 & disown
+fi
 
+hostapd -s -B /etc/ap0.conf /etc/ap1.conf
 daemon ntpd -p /run/ntpd.pid -s
 
 echo default-on >/sys/class/leds/green\:power/trigger
