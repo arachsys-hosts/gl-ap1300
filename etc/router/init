@@ -62,8 +62,10 @@ if wwan /dev/cdc-wdm0 start; then
 fi
 
 hostapd -s -B /etc/ap0.conf /etc/ap1.conf
-daemon ntpd -p /run/ntpd.pid -s
+ip link set wlan0 type bridge_slave hairpin on mcast_to_unicast on
+ip link set wlan1 type bridge_slave hairpin on mcast_to_unicast on
 
+daemon ntpd -p /run/ntpd.pid -s
 echo default-on >/sys/class/leds/green\:power/trigger
 
 mkfifo -m 0600 /dev/initctl

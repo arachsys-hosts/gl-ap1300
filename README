@@ -85,6 +85,12 @@ This moves the default IP address for the recovery web server and tftp
 client to 172.16.0.1, the default tftp server address to 172.16.0.2 and
 allows tftp boot to be triggered with the reset button.
 
+To dump the current state of the u-boot environment, use
+
+  while IFS='=' read -d '' -r KEY VALUE && [[ -n $KEY ]]; do
+    printf '%s %s\n' "$KEY" "$VALUE"
+  done < <(tail -c +5 /dev/mtd5)
+
 
 Booting from a tftp server
 --------------------------
