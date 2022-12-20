@@ -43,14 +43,14 @@ fi
 if mkdir openwrt 2>/dev/null; then
   trap 'rm -f -r openwrt' EXIT
   pkg unpack -d openwrt \
-    https://github.com/openwrt/openwrt/archive/aa12a0fd.tar.gz
+    https://github.com/openwrt/openwrt/archive/1e375c8f.tar.gz
   trap - EXIT
 fi
 
 if mkdir linux 2>/dev/null; then
   trap 'rm -f -r linux' EXIT
   pkg unpack -d linux \
-    https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.80.tar.xz
+    https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.84.tar.xz
   cp -r openwrt/target/linux/{generic,ipq40xx}/files/* linux
   printf '%s\0' \
     openwrt/target/linux/generic/{backport,pending,hack}-5.15/* \
