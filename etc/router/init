@@ -42,7 +42,6 @@ ip link set wan master br0
 ip link set br0 up
 
 ip address add 192.168.1.1/24 dev br0
-ip address add fd40:bc89:5b2f::1/64 dev br0
 
 echo netdev >/sys/class/leds/green\:wan/trigger
 echo wwan0 >/sys/class/leds/green\:wan/device_name

@@ -1,0 +1,35 @@
+diff --git a/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dts b/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dts
+index 3f08fc02d..706e542aa 100644
+--- a/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dts
++++ b/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dts
+@@ -109,6 +109,8 @@ &blsp_dma {
+ 
+ &cryptobam {
+ 	status = "okay";
++	num-channels = <4>;
++	qcom,num-ees = <2>;
+ };
+ 
+ &blsp1_spi1 {
+diff --git a/drivers/of/property.c b/drivers/of/property.c
+index e1ed63f0e..ff4c0b22d 100644
+--- a/drivers/of/property.c
++++ b/drivers/of/property.c
+@@ -1173,7 +1173,7 @@ static struct device_node *parse_prop_cells(struct device_node *np,
+ 	if (strcmp(prop_name, list_name))
+ 		return NULL;
+ 
+-	if (of_parse_phandle_with_args(np, list_name, cells_name, index,
++	if (__of_parse_phandle_with_args(np, list_name, cells_name, 0, index,
+ 				       &sup_args))
+ 		return NULL;
+ 
+@@ -1227,7 +1227,7 @@ static struct device_node *parse_suffix_prop_cells(struct device_node *np,
+ 	if (strcmp_suffix(prop_name, suffix))
+ 		return NULL;
+ 
+-	if (__of_parse_phandle_with_args(np, prop_name, cells_name, 0, index,
++	if (of_parse_phandle_with_args(np, prop_name, cells_name, index,
+ 					 &sup_args))
+ 		return NULL;
+ 
