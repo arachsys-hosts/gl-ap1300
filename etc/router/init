@@ -1,77 +1,99 @@
 #!/bin/bash
 
 set -o pipefail
-shopt -s dotglob extglob globstar nullglob
 export PATH=/bin
 
-hostname router
+start() {
+  hostname router
 
-mount -a -n -t proc
-mount -a -n -t devtmpfs,sysfs,tmpfs
-mkdir -p /dev/pts && mount -a -n -t devpts
-mkdir -m 0755 -p /run/empty && mount -r -B /run/empty /run/empty
-mkdir -m 1777 -p /run/lock /run/shm
+  mount -a -n -t proc
+  mount -a -n -t devtmpfs,sysfs,tmpfs
+  mkdir -m 0755 -p /dev/pts /run/empty
+  mkdir -m 1777 -p /run/lock /run/shm
+  mount -r -B /run/empty /run/empty
 
-ln -f -n -s /proc/self/fd /dev/fd
-ln -f -n -s pts/ptmx /dev/ptmx
-ln -f -n -s fd/0 /dev/stdin
-ln -f -n -s fd/1 /dev/stdout
-ln -f -n -s fd/2 /dev/stderr
+  mount -a -n -t devpts
+  ln -f -n -s pts/ptmx /dev/ptmx
 
-echo timer >/sys/class/leds/green\:power/trigger
+  ln -f -n -s /proc/self/fd /dev/fd
+  ln -f -n -s fd/0 /dev/stdin
+  ln -f -n -s fd/1 /dev/stdout
+  ln -f -n -s fd/2 /dev/stderr
 
-mount -o remount,ro /
-mount -a -t nonfs
+  echo timer >/sys/class/leds/green\:power/trigger
 
-if [[ -c /dev/watchdog ]] && exec >/dev/watchdog; then
-  trap 'printf V && exit' TERM
-  while printf '\0'; do read -t 5; done
-fi <><(:) & disown
+  mount -o remount,ro /
+  mount -a -t nonfs
 
-nft -f /etc/filter
-sysctl -q net.ipv{4,6}.conf.all.forwarding=1
+  if [[ -c /dev/watchdog ]] && exec >/dev/watchdog; then
+    trap 'printf V && exit' TERM
+    while printf '\0'; do read -t 5; done
+  fi <><(:) & disown
 
-ip link set lo up
-ip link set eth0 up
-ip link set lan up
-ip link set wan up
+  nft -f /etc/filter
+  sysctl -q net.ipv{4,6}.conf.all.forwarding=1
 
-ip link add name br0 type bridge
-ip link set lan master br0
-ip link set wan master br0
-ip link set br0 up
+  ip link set lo up
+  ip link set eth0 up
+  ip link set lan up
+  ip link set wan up
 
-ip address add 192.168.1.1/24 dev br0
+  ip link add name br0 type bridge
+  ip link set lan master br0
+  ip link set wan master br0
+  ip link set br0 up
 
-echo netdev >/sys/class/leds/green\:wan/trigger
-echo wwan0 >/sys/class/leds/green\:wan/device_name
-echo 1 >/sys/class/leds/green\:wan/rx
-echo 1 >/sys/class/leds/green\:wan/tx
+  ip address add 192.168.1.1/24 dev br0
 
-syslogd -k
-ssh-keygen -A && $(type -P sshd)
-dnsmasq
+  echo netdev >/sys/class/leds/green\:wan/trigger
+  echo wwan0 >/sys/class/leds/green\:wan/device_name
+  echo 1 >/sys/class/leds/green\:wan/rx
+  echo 1 >/sys/class/leds/green\:wan/tx
 
-if wwan /dev/cdc-wdm0 start; then
-  while true; do
-    while mbim /dev/cdc-wdm0 config; do read -t 30; done
-    logger -p daemon.warn -t watchdog 'Restarting wwan connection'
-    wwan /dev/cdc-wdm0 start
-  done <><(:) >/dev/null 2>&1 & disown
-fi
+  syslogd -k
+  ssh-keygen -A && $(type -P sshd)
+  dnsmasq
 
-hostapd -s -B /etc/ap0.conf /etc/ap1.conf
-ip link set wlan0 type bridge_slave hairpin on mcast_to_unicast on
-ip link set wlan1 type bridge_slave hairpin on mcast_to_unicast on
+  if wwan /dev/cdc-wdm0 start; then
+    while true; do
+      while mbim /dev/cdc-wdm0 config; do read -t 30; done
+      logger -p daemon.warn -t watchdog 'Restarting wwan connection'
+      wwan /dev/cdc-wdm0 start
+    done <><(:) >/dev/null 2>&1 & disown
+  fi
 
-daemon ntpd -p /run/ntpd.pid -s
-echo default-on >/sys/class/leds/green\:power/trigger
+  hostapd -s -B /etc/ap0.conf /etc/ap1.conf
+  ip link set wlan0 type bridge_slave hairpin on mcast_to_unicast on
+  ip link set wlan1 type bridge_slave hairpin on mcast_to_unicast on
 
-mkfifo -m 0600 /dev/initctl
-while read -d '' -r MESSAGE; do
-  [[ $MESSAGE == @(halt|poweroff|reboot) ]] && break
-done <>/dev/initctl
+  daemon ntpd -p /run/ntpd.pid -s
+  echo default-on >/sys/class/leds/green\:power/trigger
+}
 
-kill -TERM -1 && sleep 2 && kill -KILL -1
-umount -a -d -r
-sync && exec stop "$MESSAGE"
+listen() {
+  if [[ ! -p /dev/initctl ]]; then
+    rm -f /dev/initctl
+    mkfifo -m 0600 /dev/initctl
+  fi
+
+  while read -d '' -r MESSAGE; do
+    case "$MESSAGE" in
+      halt | poweroff | reboot)
+        exec "$0" stop "$MESSAGE"
+        ;;
+    esac
+  done <>/dev/initctl
+}
+
+stop() {
+  kill -TERM -1 && sleep 2 && kill -KILL -1
+  if umount -a -r; then
+    echo "Remounted filesystems read-only"
+  else
+    sync && echo "Flushed filesystem writes"
+  fi
+  exec stop "$@"
+}
+
+trap listen EXIT
+"${@:-start}"
