@@ -17,7 +17,7 @@ start() {
   ln -f -n -s fd/1 /dev/stdout
   ln -f -n -s fd/2 /dev/stderr
 
-  echo timer >/sys/class/leds/green\:power/trigger
+  echo timer >/sys/class/leds/white\:power/trigger
 
   mount -o remount,ro /
   mount -a -t nonfs
@@ -51,14 +51,14 @@ start() {
   ip link set wlan2 addr 94:83:c4:1b:00:6f master br0 up
   wpad -b br0 -c /etc/uplink.conf -i wlan2 -s -B
 
-  echo netdev >/sys/class/leds/green\:wan/trigger
-  echo wlan2 >/sys/class/leds/green\:wan/device_name
-  echo 1 >/sys/class/leds/green\:wan/tx
-  echo 1 >/sys/class/leds/green\:wan/rx
+  echo netdev >/sys/class/leds/white\:wan/trigger
+  echo wlan2 >/sys/class/leds/white\:wan/device_name
+  echo 1 >/sys/class/leds/white\:wan/tx
+  echo 1 >/sys/class/leds/white\:wan/rx
 
   daemon ntpd -p /run/ntpd.pid -s
 
-  echo default-on >/sys/class/leds/green\:power/trigger
+  echo default-on >/sys/class/leds/white\:power/trigger
 }
 
 listen() {
