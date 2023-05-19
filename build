@@ -21,6 +21,7 @@ if (( $$ != 1 )); then
     pkg system rootfs dnsmasq hostap iproute2 iputils-ping iw ldns-tools \
       kakoune mtr nftables openntpd openssh rsync shadow tcpdump tinymbim \
       tmux wireguard
+    update-etc rootfs/etc
     rm -f -r rootfs/{etc/resolv.conf,lib/{include,static},run,tmp,var}
     mkdir -p rootfs/{dev,home/root,proc,run,sys,tmp}
     cp -d -R -T etc/base rootfs/etc && chmod 0600 rootfs/etc/shadow
@@ -43,14 +44,14 @@ fi
 if mkdir openwrt 2>/dev/null; then
   trap 'rm -f -r openwrt' EXIT
   pkg unpack -d openwrt \
-    https://github.com/openwrt/openwrt/archive/ec6bcda8.tar.gz
+    https://github.com/openwrt/openwrt/archive/a384490b.tar.gz
   trap - EXIT
 fi
 
 if mkdir linux 2>/dev/null; then
   trap 'rm -f -r linux' EXIT
   pkg unpack -d linux \
-    https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.109.tar.xz
+    https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.112.tar.xz
   cp -r openwrt/target/linux/{generic,ipq40xx}/files/* linux
   printf '%s\0' \
     openwrt/target/linux/generic/{backport,pending,hack}-5.15/* \
