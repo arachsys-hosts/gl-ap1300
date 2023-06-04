@@ -7,7 +7,7 @@
   images {
     kernel {
       description = "Kernel Image";
-      data = /incbin/("../linux/arch/arm/boot/Image.gz");
+      data = /incbin/("../bin/kernel.gz");
       type = "kernel";
       arch = "arm";
       os = "linux";
@@ -18,7 +18,7 @@
 
     fdt {
       description = "Flat Device Tree";
-      data = /incbin/("../linux/arch/arm/boot/dts/qcom-ipq4018-gl-ap1300.dtb");
+      data = /incbin/("../bin/qcom-ipq4018-gl-ap1300.dtb");
       type = "flat_dt";
       arch = "arm";
       compression = "none";
