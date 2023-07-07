@@ -36,18 +36,18 @@ elif [[ -d $TMP ]]; then
   printf '%s\0' patches/mtd-* | xargs -n 1 -0 pkg apply -d $TMP/mtd-utils
 
   pkg unpack -d $TMP/openwrt \
-    https://github.com/openwrt/openwrt/archive/a384490b.tar.gz
+    https://github.com/openwrt/openwrt/archive/a20735da.tar.gz
 
   pkg unpack -d $TMP/linux \
-    https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.114.tar.xz
+    https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.120.tar.xz
   cp -r $TMP/openwrt/target/linux/{generic,ipq40xx}/files/* $TMP/linux
   printf '%s\0' \
     $TMP/openwrt/target/linux/generic/{backport,pending,hack}-5.15/* \
     $TMP/openwrt/target/linux/ipq40xx/patches-5.15/* \
     patches/linux-* | xargs -n 1 -0 pkg apply -d $TMP/linux
-  printf '%s\0' $TMP/openwrt/package/kernel/ath10k-ct/patches/*-nvmem-* \
-    | xargs -n 1 -0 \
-        pkg apply -d $TMP/linux/drivers/net/wireless/ath/ath10k -p 2
+
+  pkg apply -d $TMP/linux/drivers/net/wireless/ath/ath10k -p 2 \
+    https://raw.githubusercontent.com/openwrt/openwrt/a3469a90/package/kernel/ath10k-ct/patches/120-ath10k-fetch-calibration-data-via-nvmem-subsystem.patch
 
   pkg unpack -d $TMP/u-boot \
     https://github.com/u-boot/u-boot/archive/refs/tags/v2023.04.tar.gz

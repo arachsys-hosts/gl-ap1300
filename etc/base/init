@@ -22,7 +22,7 @@ start() {
   mount -o remount,rw /
   mount -a -t nonfs
 
-  if [[ -c /dev/watchdog ]] && exec >/dev/watchdog; then
+  if [[ -c /dev/watchdog ]] && exec >/dev/watchdog && wait; then
     trap 'printf V && exit' TERM
     while printf '\0'; do read -t 5; done
   fi <><(:) & disown
@@ -43,21 +43,12 @@ start() {
   ssh-keygen -A && $(type -P sshd)
 
   echo default-on >/sys/class/leds/white\:power/trigger
-}
 
-listen() {
-  if [[ ! -p /dev/initctl ]]; then
-    rm -f /dev/initctl
-    mkfifo -m 0600 /dev/initctl
-  fi
+  trap 'exec "$0" stop reboot' INT
+  trap 'exec "$0" stop poweroff' TERM
 
-  while read -d '' -r MESSAGE; do
-    case "$MESSAGE" in
-      halt | poweroff | reboot)
-        exec "$0" stop "$MESSAGE"
-        ;;
-    esac
-  done <>/dev/initctl
+  ctrlaltdel soft
+  while true; do read; done <><(:)
 }
 
 stop() {
@@ -70,5 +61,4 @@ stop() {
   exec stop "$@"
 }
 
-trap listen EXIT
 "${@:-start}"
