@@ -56,7 +56,7 @@ start() {
   echo 1 >/sys/class/leds/white\:wan/tx
   echo 1 >/sys/class/leds/white\:wan/rx
 
-  daemon ntpd -p /run/ntpd.pid -s
+  daemon await-net ntpd -p /run/ntpd.pid
 
   echo default-on >/sys/class/leds/white\:power/trigger
 
