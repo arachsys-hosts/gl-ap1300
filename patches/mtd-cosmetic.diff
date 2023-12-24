@@ -1,5 +1,5 @@
 diff --git a/include/common.h b/include/common.h
-index 31b6cd1..7e1c213 100644
+index 303d30d..e5debec 100644
 --- a/include/common.h
 +++ b/include/common.h
 @@ -95,7 +95,7 @@ extern "C" {
@@ -21,13 +21,13 @@ index 31b6cd1..7e1c213 100644
  
  /* for tagging functions that always exit */
 diff --git a/misc-utils/flashcp.c b/misc-utils/flashcp.c
-index 341c210..b6db04b 100644
+index e1be292..3861c06 100644
 --- a/misc-utils/flashcp.c
 +++ b/misc-utils/flashcp.c
-@@ -88,21 +88,17 @@ static NORETURN void showusage(bool error)
- 	int level = error ? LOG_ERROR : LOG_NORMAL;
- 
- 	log_printf (level,
+@@ -97,21 +97,17 @@ static void log_verbose (const char *fmt, ...)
+ static NORETURN void showusage(bool error)
+ {
+ 	fprintf (error ? stderr : stdout,
 -			"\n"
 -			"Flash Copy - Written by Abraham van der Merwe <abraham@2d3d.co.za>\n"
 -			"\n"
@@ -42,7 +42,7 @@ index 341c210..b6db04b 100644
 -			"   -A | --erase-all Erases the whole device regardless of the image size\n"
 -			"   -V | --version   Show version information and exit\n"
 -			"   <filename>       File which you want to copy to flash\n"
--			"   <device>         Flash device to write to (e.g. /dev/mtd0, /dev/mtd1, etc.)\n"
+-			"   <device>         Flash device node or 'mtd:<name>' to write to (e.g. /dev/mtd0, /dev/mtd1, mtd:data, etc.)\n"
 -			"\n",
 +			"-h, --help          Show this help message\n"
 +			"-v, --verbose       Show progress reports\n"
@@ -50,7 +50,7 @@ index 341c210..b6db04b 100644
 +			"-A, --erase-all     Erase the whole device regardless of the image size\n"
 +			"-V, --version       Show version information and exit\n"
 +			"<filename>          File to copy to flash\n"
-+			"<device>            Destination flash device\n",
++			"<device>            Destination flash device\n"
  			PROGRAM_NAME);
  
  	exit (error ? EXIT_FAILURE : EXIT_SUCCESS);
@@ -197,7 +197,7 @@ index b709b43..d85e176 100644
  			printf("%s\n", optionsstr);
  			return -1;
 diff --git a/ubi-utils/ubinfo.c b/ubi-utils/ubinfo.c
-index 29530be..eda69e2 100644
+index 6c5b19e..2f613c4 100644
 --- a/ubi-utils/ubinfo.c
 +++ b/ubi-utils/ubinfo.c
 @@ -116,7 +116,6 @@ static int parse_opt(int argc, char * const argv[])
@@ -258,7 +258,7 @@ index 0854abc..cd474d3 100644
  			printf("%s\n", optionsstr);
  			return -1;
 diff --git a/ubi-utils/ubiscan.c b/ubi-utils/ubiscan.c
-index e040bab..9671fab 100644
+index 66af12a..e47c78d 100644
 --- a/ubi-utils/ubiscan.c
 +++ b/ubi-utils/ubiscan.c
 @@ -115,12 +115,10 @@ static int parse_opt(int argc, char * const argv[])

@@ -1,5 +1,5 @@
 baudrate 115200
-bootcmd if cmp 103f004 0 1; then tftpboot gl-ap1300.itb && bootm; else setenv fsbootargs "" && bootipq; fi
+bootcmd if cmp 103f004 0 1; then tftpboot gl-ap1300.itb && bootm; else bootipq; fi
 bootdelay 1
 bootstopkey gl
 ethact eth0

@@ -12,8 +12,10 @@ vendor bootloader, constructs the rootfs image, fetches/patches/builds the
 required tools and kernel, then constructs images ready to flash or boot
 over tftp.
 
-Upstream kernel support for ipq40xx is very limited, so we fetch and apply
-openwrt patches to the upstream kernel source before building.
+Mainline kernels are still missing ipqess ethernet and dsa support for
+ipq40xx so we patch this in, together with a suitable device tree and a
+handful of other small system-specific additions and fixes. We hard-code
+the correct cmdline as the stock bootloader passes an unsuitable one.
 
 The u-boot bootloader, u-boot environment and ath10k wifi calibration data
 are stored in a 4MB partitioned NOR flash device which linux sees as
@@ -26,8 +28,8 @@ never to write to flash during normal operation and boots with / mounted
 read-only. /var is symlinked to the tmpfs /run and syslog is redirected
 to dmesg using syslogd -k.
 
-There is no RTC so the clock reads 1970-01-01 00:00:00 UTC at boot; this is
-corrected using ntpd -s once the network is up and working.
+There is no RTC so the clock reads 1970-01-01 00:00:00 UTC at boot;
+this is corrected using openntpd once the network is up and working.
 
 
 Flashing the bootloader

@@ -18,7 +18,7 @@
 
     fdt {
       description = "Flat Device Tree";
-      data = /incbin/("../bin/qcom-ipq4018-gl-ap1300.dtb");
+      data = /incbin/("../bin/gl-ap1300.dtb");
       type = "flat_dt";
       arch = "arm";
       compression = "none";
@@ -26,7 +26,7 @@
 
     ramdisk {
       description = "Initramfs";
-      data = /incbin/("../bin/initramfs.cpio.zst");
+      data = /incbin/("../bin/initramfs.cpio.gz");
       type = "ramdisk";
       arch = "arm";
       os = "linux";
