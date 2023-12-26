@@ -19,9 +19,9 @@ if (( $$ != 1 )); then
   TMP=$(mktemp -d build-XXXXXX)
   trap 'rm -f -r $TMP' EXIT
 
-  pkg system $TMP/rootfs dnsmasq hostap iproute2 iputils-ping iw ldns-tools \
-    kakoune mtr nftables openntpd openssh rsync shadow tcpdump tinymbim \
-    tmux wireguard
+  pkg system $TMP/rootfs dnsmasq file hostap iproute2 iputils-ping iw \
+    ldns-tools kakoune mtr nftables openntpd openssh rsync shadow tcpdump \
+    tinymbim tmux wireguard
   update-etc $TMP/rootfs/etc
   rm -f -r $TMP/rootfs/{etc/resolv.conf,lib/{include,static},run,tmp,var}
   mkdir -p $TMP/rootfs/{dev,home/root,proc,run,sys,tmp}
