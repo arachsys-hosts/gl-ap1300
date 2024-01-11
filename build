@@ -34,15 +34,15 @@ if (( $$ != 1 )); then
 fi
 
 pkg unpack -c /src/cache -d mtd-utils \
-  https://infraroot.at/pub/mtd/mtd-utils-2.1.6.tar.bz2
+  https://infraroot.at/pub/mtd/mtd-utils-2.2.0.tar.bz2
 printf '%s\0' /src/patches/mtd-* | xargs -n 1 -0 pkg apply -d mtd-utils
 
 pkg unpack -c /src/cache -d linux \
-  https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.7.tar.xz
- printf '%s\0' /src/patches/linux-* | xargs -n 1 -0 pkg apply -d linux
+  https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.8.tar.xz
+printf '%s\0' /src/patches/linux-* | xargs -n 1 -0 pkg apply -d linux
 
-pkg unpack -c /src/cache -d u-boot u-boot-2024.01.tar.gz \
-  https://github.com/u-boot/u-boot/archive/refs/tags/v2024.01.tar.gz
+pkg unpack -c /src/cache -d u-boot u-boot-2024.04.tar.gz \
+  https://github.com/u-boot/u-boot/archive/refs/tags/v2024.04.tar.gz
 
 if [[ ! -f /src/bin/uboot.img ]]; then
   echo "Downloading uboot.img from https://github.com/gl-inet/uboot-ipq40xx/:" >&2

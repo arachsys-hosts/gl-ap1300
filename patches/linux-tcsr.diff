@@ -1,8 +1,8 @@
 diff --git a/drivers/soc/qcom/Kconfig b/drivers/soc/qcom/Kconfig
-index 715348869..c158f2d7c 100644
+index c6ca4de4..fad6f218 100644
 --- a/drivers/soc/qcom/Kconfig
 +++ b/drivers/soc/qcom/Kconfig
-@@ -291,4 +291,11 @@ config QCOM_INLINE_CRYPTO_ENGINE
+@@ -268,4 +268,11 @@ config QCOM_INLINE_CRYPTO_ENGINE
  	tristate
  	select QCOM_SCM
  
@@ -15,17 +15,17 @@ index 715348869..c158f2d7c 100644
 +
  endmenu
 diff --git a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
-index bbca2e1e5..a14d32e86 100644
+index 05b3d54e..e9a774cc 100644
 --- a/drivers/soc/qcom/Makefile
 +++ b/drivers/soc/qcom/Makefile
-@@ -32,3 +32,4 @@ obj-$(CONFIG_QCOM_KRYO_L2_ACCESSORS) +=	kryo-l2-accessors.o
+@@ -34,3 +34,4 @@ obj-$(CONFIG_QCOM_KRYO_L2_ACCESSORS) +=	kryo-l2-accessors.o
  obj-$(CONFIG_QCOM_ICC_BWMON)	+= icc-bwmon.o
  qcom_ice-objs			+= ice.o
  obj-$(CONFIG_QCOM_INLINE_CRYPTO_ENGINE)	+= qcom_ice.o
 +obj-$(CONFIG_QCOM_TCSR)		+= qcom_tcsr.o
 diff --git a/drivers/soc/qcom/qcom_tcsr.c b/drivers/soc/qcom/qcom_tcsr.c
 new file mode 100644
-index 000000000..94476166f
+index 00000000..94476166
 --- /dev/null
 +++ b/drivers/soc/qcom/qcom_tcsr.c
 @@ -0,0 +1,98 @@
@@ -129,7 +129,7 @@ index 000000000..94476166f
 +MODULE_LICENSE("GPL v2");
 diff --git a/include/dt-bindings/soc/qcom,tcsr.h b/include/dt-bindings/soc/qcom,tcsr.h
 new file mode 100644
-index 000000000..166ad02f5
+index 00000000..166ad02f
 --- /dev/null
 +++ b/include/dt-bindings/soc/qcom,tcsr.h
 @@ -0,0 +1,48 @@

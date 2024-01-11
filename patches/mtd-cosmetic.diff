@@ -1,5 +1,5 @@
 diff --git a/include/common.h b/include/common.h
-index 303d30d..e5debec 100644
+index 303d30da..e5debecf 100644
 --- a/include/common.h
 +++ b/include/common.h
 @@ -95,7 +95,7 @@ extern "C" {
@@ -21,10 +21,10 @@ index 303d30d..e5debec 100644
  
  /* for tagging functions that always exit */
 diff --git a/misc-utils/flashcp.c b/misc-utils/flashcp.c
-index e1be292..3861c06 100644
+index 9c48637f..82696c27 100644
 --- a/misc-utils/flashcp.c
 +++ b/misc-utils/flashcp.c
-@@ -97,21 +97,17 @@ static void log_verbose (const char *fmt, ...)
+@@ -98,22 +98,18 @@ static void log_verbose (const char *fmt, ...)
  static NORETURN void showusage(bool error)
  {
  	fprintf (error ? stderr : stdout,
@@ -36,29 +36,31 @@ index e1be292..3861c06 100644
  			"       %1$s -h | --help\n"
  			"       %1$s -V | --version\n"
  			"\n"
--			"   -h | --help      Show this help message\n"
--			"   -v | --verbose   Show progress reports\n"
--			"   -p | --partition Only copy different block from file to device\n"
--			"   -A | --erase-all Erases the whole device regardless of the image size\n"
--			"   -V | --version   Show version information and exit\n"
--			"   <filename>       File which you want to copy to flash\n"
--			"   <device>         Flash device node or 'mtd:<name>' to write to (e.g. /dev/mtd0, /dev/mtd1, mtd:data, etc.)\n"
+-			"   -h | --help           Show this help message\n"
+-			"   -v | --verbose        Show progress reports\n"
+-			"   -p | --partition      Only copy different block from file to device\n"
+-			"   -A | --erase-all      Erases the whole device regardless of the image size\n"
+-			"   -l | --wr-last=bytes  Write the first [bytes] last\n"
+-			"   -V | --version        Show version information and exit\n"
+-			"   <filename>            File which you want to copy to flash\n"
+-			"   <device>              Flash device node or 'mtd:<name>' to write to (e.g. /dev/mtd0, /dev/mtd1, mtd:data, etc.)\n"
 -			"\n",
-+			"-h, --help          Show this help message\n"
-+			"-v, --verbose       Show progress reports\n"
-+			"-p, --partition     Only write blocks that differ between file and device\n"
-+			"-A, --erase-all     Erase the whole device regardless of the image size\n"
-+			"-V, --version       Show version information and exit\n"
-+			"<filename>          File to copy to flash\n"
-+			"<device>            Destination flash device\n"
++			"-h | --help              Show this help message\n"
++			"-v | --verbose           Show progress reports\n"
++			"-p | --partition         Only write blocks that differ between file and device\n"
++			"-A | --erase-all         Erase the whole device regardless of the image size\n"
++			"-l | --wr-last=N         Write the first N bytes last\n"
++			"-V | --version           Show version information and exit\n"
++			"<filename>               File to copy to flash\n"
++			"<device>                 Destination flash device\n",
  			PROGRAM_NAME);
  
  	exit (error ? EXIT_FAILURE : EXIT_SUCCESS);
 diff --git a/ubi-utils/ubiattach.c b/ubi-utils/ubiattach.c
-index 09f85af..862908f 100644
+index e758dab6..7b49ebf3 100644
 --- a/ubi-utils/ubiattach.c
 +++ b/ubi-utils/ubiattach.c
-@@ -64,9 +64,8 @@ static const char optionsstr[] =
+@@ -68,12 +68,11 @@ static const char optionsstr[] =
  "                      if the character device node does not exist)\n"
  "-O, --vid-hdr-offset  VID header offset (do not specify this unless you really\n"
  "                      know what you are doing, the default should be optimal)\n"
@@ -67,13 +69,17 @@ index 09f85af..862908f 100644
 -"                      Allowed range is 0-768, 0 means the default kernel value.\n"
 +"-b, --max-beb-per1024 reserved eraseblocks per 1024 (0 - 768, where 0 selects\n"
 +"                      the kernel default, correct for most NAND devices)\n"
+ "-f, --disable-fastmap don't create new fastmap and do full scanning (existed\n"
+ "                      fastmap will be destroyed) for the given ubi device.\n"
+-"-r, --reserve-pool    Slow down the frequency of updating fastmap by reserving\n"
++"-r, --reserve-pool    slow down the frequency of updating fastmap by reserving\n"
+ "                      pebs for filling pool/wl_pool, which can prolong flash\n"
+ "                      service life.\n"
  "-h, --help            print help message\n"
- "-V, --version         print program version";
- 
-@@ -75,17 +74,16 @@ static const char usage[] =
+@@ -84,17 +83,16 @@ static const char usage[] =
  "\t[-m <MTD device number>] [-d <UBI device number>] [-p <path to device>]\n"
  "\t[--mtdn=<MTD device number>] [--devn=<UBI device number>]\n"
- "\t[--dev-path=<path to device>]\n"
+ "\t[--dev-path=<path to device>] [-f] [--disable-fastmap] [-r] [--reserve-pool]\n"
 -"\t[--max-beb-per1024=<maximum bad block number per 1024 blocks>]\n"
 +"\t[--max-beb-per1024=<reserved eraseblocks per 1024>]\n"
  "UBI control device defaults to " DEFAULT_CTRL_DEV " if not supplied.\n"
@@ -92,7 +98,7 @@ index 09f85af..862908f 100644
  
  static const struct option long_options[] = {
  	{ .name = "devn",            .has_arg = 1, .flag = NULL, .val = 'd' },
-@@ -136,7 +134,7 @@ static int parse_opt(int argc, char * const argv[])
+@@ -147,7 +145,7 @@ static int parse_opt(int argc, char * const argv[])
  			args.max_beb_per1024 = simple_strtoul(optarg, &error);
  			if (error || args.max_beb_per1024 < 0 ||
  			    args.max_beb_per1024 > 768)
@@ -101,7 +107,7 @@ index 09f85af..862908f 100644
  
  			if (args.max_beb_per1024 == 0)
  				warnmsg("the default kernel value will be used for maximum expected bad blocks");
-@@ -144,7 +142,6 @@ static int parse_opt(int argc, char * const argv[])
+@@ -163,7 +161,6 @@ static int parse_opt(int argc, char * const argv[])
  			break;
  
  		case 'h':
@@ -109,7 +115,7 @@ index 09f85af..862908f 100644
  			printf("%s\n\n", usage);
  			printf("%s\n", optionsstr);
  			exit(EXIT_SUCCESS);
-@@ -224,8 +221,8 @@ int main(int argc, char * const argv[])
+@@ -245,8 +242,8 @@ int main(int argc, char * const argv[])
  	} else if (err == 1) {
  		/* The kernel did not support the 'max_beb_per1024' parameter */
  		warnmsg("the --max-beb-per1024=%d parameter was ignored", args.max_beb_per1024);
@@ -121,7 +127,7 @@ index 09f85af..862908f 100644
  	}
  
 diff --git a/ubi-utils/ubiblock.c b/ubi-utils/ubiblock.c
-index 71e60b6..d74051a 100644
+index 71e60b6c..d74051a0 100644
 --- a/ubi-utils/ubiblock.c
 +++ b/ubi-utils/ubiblock.c
 @@ -79,12 +79,10 @@ static int parse_opt(int argc, char * const argv[])
@@ -138,7 +144,7 @@ index 71e60b6..d74051a 100644
  			printf("%s\n", optionsstr);
  			return -1;
 diff --git a/ubi-utils/ubicrc32.c b/ubi-utils/ubicrc32.c
-index 885f348..f3c7a63 100644
+index 885f3480..f3c7a639 100644
 --- a/ubi-utils/ubicrc32.c
 +++ b/ubi-utils/ubicrc32.c
 @@ -63,7 +63,6 @@ static int parse_opt(int argc, char * const argv[])
@@ -150,7 +156,7 @@ index 885f348..f3c7a63 100644
  			printf("%s\n", optionsstr);
  			exit(EXIT_SUCCESS);
 diff --git a/ubi-utils/ubidetach.c b/ubi-utils/ubidetach.c
-index 29f721e..b4b0497 100644
+index 29f721ec..b4b04978 100644
 --- a/ubi-utils/ubidetach.c
 +++ b/ubi-utils/ubidetach.c
 @@ -106,7 +106,6 @@ static int parse_opt(int argc, char * const argv[])
@@ -162,7 +168,7 @@ index 29f721e..b4b0497 100644
  			printf("%s\n", optionsstr);
  			exit(EXIT_SUCCESS);
 diff --git a/ubi-utils/ubiformat.c b/ubi-utils/ubiformat.c
-index d1b12e4..4578a6e 100644
+index d1b12e46..4578a6ed 100644
 --- a/ubi-utils/ubiformat.c
 +++ b/ubi-utils/ubiformat.c
 @@ -203,12 +203,10 @@ static int parse_opt(int argc, char * const argv[])
@@ -179,7 +185,7 @@ index d1b12e4..4578a6e 100644
  			printf("%s\n", optionsstr);
  			return -1;
 diff --git a/ubi-utils/ubimkvol.c b/ubi-utils/ubimkvol.c
-index b709b43..d85e176 100644
+index b709b43a..d85e176b 100644
 --- a/ubi-utils/ubimkvol.c
 +++ b/ubi-utils/ubimkvol.c
 @@ -170,13 +170,11 @@ static int parse_opt(int argc, char * const argv[])
@@ -197,7 +203,7 @@ index b709b43..d85e176 100644
  			printf("%s\n", optionsstr);
  			return -1;
 diff --git a/ubi-utils/ubinfo.c b/ubi-utils/ubinfo.c
-index 6c5b19e..2f613c4 100644
+index 6c5b19ed..2f613c49 100644
 --- a/ubi-utils/ubinfo.c
 +++ b/ubi-utils/ubinfo.c
 @@ -116,7 +116,6 @@ static int parse_opt(int argc, char * const argv[])
@@ -209,7 +215,7 @@ index 6c5b19e..2f613c4 100644
  			printf("%s\n", optionsstr);
  			exit(EXIT_SUCCESS);
 diff --git a/ubi-utils/ubinize.c b/ubi-utils/ubinize.c
-index ac8c1e5..fd7bfeb 100644
+index ac8c1e53..fd7bfeb4 100644
 --- a/ubi-utils/ubinize.c
 +++ b/ubi-utils/ubinize.c
 @@ -351,7 +351,7 @@ static int read_section(const struct ubigen_info *ui, const char *sname,
@@ -222,7 +228,7 @@ index ac8c1e5..fd7bfeb 100644
  		printf("\n");
  	}
 diff --git a/ubi-utils/ubirmvol.c b/ubi-utils/ubirmvol.c
-index 049e70d..cb65b4c 100644
+index 049e70de..cb65b4c8 100644
 --- a/ubi-utils/ubirmvol.c
 +++ b/ubi-utils/ubirmvol.c
 @@ -109,13 +109,11 @@ static int parse_opt(int argc, char * const argv[])
@@ -240,7 +246,7 @@ index 049e70d..cb65b4c 100644
  			printf("%s\n", optionsstr);
  			return -1;
 diff --git a/ubi-utils/ubirsvol.c b/ubi-utils/ubirsvol.c
-index 0854abc..cd474d3 100644
+index 0854abc5..cd474d32 100644
 --- a/ubi-utils/ubirsvol.c
 +++ b/ubi-utils/ubirsvol.c
 @@ -137,13 +137,11 @@ static int parse_opt(int argc, char * const argv[])
@@ -258,7 +264,7 @@ index 0854abc..cd474d3 100644
  			printf("%s\n", optionsstr);
  			return -1;
 diff --git a/ubi-utils/ubiscan.c b/ubi-utils/ubiscan.c
-index 66af12a..e47c78d 100644
+index 66af12af..e47c78d2 100644
 --- a/ubi-utils/ubiscan.c
 +++ b/ubi-utils/ubiscan.c
 @@ -115,12 +115,10 @@ static int parse_opt(int argc, char * const argv[])
@@ -275,7 +281,7 @@ index 66af12a..e47c78d 100644
              printf("%s\n", optionsstr);
              return -1;
 diff --git a/ubi-utils/ubiupdatevol.c b/ubi-utils/ubiupdatevol.c
-index 1b3239e..1b57f2a 100644
+index 1b3239ef..1b57f2a5 100644
 --- a/ubi-utils/ubiupdatevol.c
 +++ b/ubi-utils/ubiupdatevol.c
 @@ -109,13 +109,11 @@ static int parse_opt(int argc, char * const argv[])

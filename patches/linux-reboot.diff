@@ -1,5 +1,5 @@
 diff --git a/drivers/firmware/qcom/qcom_scm.c b/drivers/firmware/qcom/qcom_scm.c
-index 520de9b56..c3017fe99 100644
+index 520de9b5..c3017fe9 100644
 --- a/drivers/firmware/qcom/qcom_scm.c
 +++ b/drivers/firmware/qcom/qcom_scm.c
 @@ -1906,7 +1906,8 @@ static int qcom_scm_probe(struct platform_device *pdev)
