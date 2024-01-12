@@ -26,7 +26,7 @@
 
     ramdisk {
       description = "Initramfs";
-      data = /incbin/("../bin/initramfs.cpio.gz");
+      data = /incbin/("../bin/initramfs.cpio.zst");
       type = "ramdisk";
       arch = "arm";
       os = "linux";

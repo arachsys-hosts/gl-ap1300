@@ -72,7 +72,8 @@ To flash bin/image.ubi from linux where the large NAND flash device is
   ubiattach -d 0 -m 8
 
 We reattach the UBI device after flashing it to ensure the rootfs is
-expanded to fill the available space.
+expanded to fill the available space. The bootloader would otherwise
+attempt to do this at startup but its implementation is buggy.
 
 
 Fixing the u-boot environment
@@ -109,12 +110,13 @@ The directory /tmp/tftp can be exported using dnsmasq with
 
   dnsmasq --enable-tftp --no-daemon --port=0 --tftp-root=/tmp/tftp
 
-and a suitable kernel + initramfs is built in bin/initramfs.itb using the
-same rootfs as the main firmware image. The power light will flash as this
-image is transferred. It then illuminates solidly as kernel is uncompressed
-and booted, flashes as userspace boots and generates an ephemeral ssh host
-key, then illuminates solidly again once boot is complete. The device is
-now accessible by ssh on 172.16.0.1.
+and a suitable kernel + initramfs is built in bin/initramfs.itb using
+the same rootfs as the main firmware image. The power light will flash as
+this image is transferred. It then illuminates solidly as the kernel is
+uncompressed and booted, flashes as the userspace boots and generates
+an ephemeral ssh host key, then illuminates solidly again once boot
+is complete. The device is now accessible by ssh on 172.16.0.1 with an
+empty root password.
 
 
 Updating an existing installation
@@ -125,5 +127,16 @@ be replaced with
 
   ubiupdatevol /dev/ubi0_0 bin/kernel.itb
 
-and the root filesystem can be mounted read-write and updated directly. It
-is safer to test new kernels by tftp before flashing them.
+and the root filesystem can be mounted read-write and updated directly.
+
+It is safer to test new kernels by tftp boot before flashing them. As the
+initramfs and standard root filesystems are identical, /bin and /lib can
+be updated with rsync following a successful tftp boot:
+
+  mount -m -t ubifs ubi0:roofs /root
+  rsync -v -a -H --delete /bin /lib /root/
+  cp -a -t /root --parents \
+    /etc/{fstab,group,kakrc,passwd,protocols,services,ssh/*_config,ssl}
+
+although (rare) changes to the device-specific /etc/dnsmasq.conf,
+/etc/filter, /etc/init, etc. may need merging more carefully.

@@ -206,7 +206,7 @@ index ce66b1984..4784c8de4 100644
  endif
 +obj-$(CONFIG_NET_DSA_QCA8K_IPQ4019)	+= qca8k-ipq4019.o qca8k-common.o
 diff --git a/drivers/net/dsa/qca/qca8k-common.c b/drivers/net/dsa/qca/qca8k-common.c
-index fce04ce12..3126e0c7c 100644
+index 9243eff89..82c168e88 100644
 --- a/drivers/net/dsa/qca/qca8k-common.c
 +++ b/drivers/net/dsa/qca/qca8k-common.c
 @@ -412,7 +412,7 @@ static int qca8k_vlan_del(struct qca8k_priv *priv, u8 port, u16 vid)
@@ -218,7 +218,7 @@ index fce04ce12..3126e0c7c 100644
  		mask = QCA8K_VTU_FUNC0_EG_MODE_PORT_NOT(i);
  
  		if ((reg & mask) != mask) {
-@@ -653,7 +653,7 @@ int qca8k_port_bridge_join(struct dsa_switch *ds, int port,
+@@ -652,7 +652,7 @@ int qca8k_port_bridge_join(struct dsa_switch *ds, int port,
  	cpu_port = dsa_to_port(ds, port)->cpu_dp->index;
  	port_mask = BIT(cpu_port);
  
@@ -227,7 +227,7 @@ index fce04ce12..3126e0c7c 100644
  		if (dsa_is_cpu_port(ds, i))
  			continue;
  		if (!dsa_port_offloads_bridge(dsa_to_port(ds, i), &bridge))
-@@ -685,7 +685,7 @@ void qca8k_port_bridge_leave(struct dsa_switch *ds, int port,
+@@ -684,7 +684,7 @@ void qca8k_port_bridge_leave(struct dsa_switch *ds, int port,
  
  	cpu_port = dsa_to_port(ds, port)->cpu_dp->index;
  
@@ -1188,7 +1188,7 @@ index 000000000..e211ae045
 +MODULE_DESCRIPTION("Qualcomm IPQ4019 built-in switch driver");
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/net/dsa/qca/qca8k.h b/drivers/net/dsa/qca/qca8k.h
-index 8f88b7db3..0ed7e5945 100644
+index 2ac7e88f8..44ea3f303 100644
 --- a/drivers/net/dsa/qca/qca8k.h
 +++ b/drivers/net/dsa/qca/qca8k.h
 @@ -19,7 +19,10 @@
@@ -1333,10 +1333,10 @@ index 000000000..4f2db7283
 +ipq_ess-objs := ipqess.o ipqess_ethtool.o
 diff --git a/drivers/net/ethernet/qualcomm/ipqess/ipqess.c b/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
 new file mode 100644
-index 000000000..3f82a485b
+index 000000000..e851c845d
 --- /dev/null
 +++ b/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
-@@ -0,0 +1,1332 @@
+@@ -0,0 +1,1331 @@
 +// SPDX-License-Identifier: GPL-2.0 OR ISC
 +/* Copyright (c) 2014 - 2017, The Linux Foundation. All rights reserved.
 + * Copyright (c) 2017 - 2018, John Crispin <john@phrozen.org>
@@ -2320,7 +2320,7 @@ index 000000000..3f82a485b
 +	case NETDEV_CHANGEUPPER:
 +		info = ptr;
 +
-+		if (!dsa_slave_dev_check(info->upper_dev))
++		if (!dsa_user_dev_check(info->upper_dev))
 +			return NOTIFY_DONE;
 +
 +		if (info->linking)
@@ -2484,7 +2484,6 @@ index 000000000..3f82a485b
 +}
 +
 +static struct phylink_mac_ops ipqess_phylink_mac_ops = {
-+	.validate		= phylink_generic_validate,
 +	.mac_config		= ipqess_mac_config,
 +	.mac_link_up		= ipqess_mac_link_up,
 +	.mac_link_down		= ipqess_mac_link_down,
@@ -3368,7 +3367,7 @@ index 000000000..07527b3a7
 +	netdev->ethtool_ops = &ipqesstool_ops;
 +}
 diff --git a/drivers/net/phy/Kconfig b/drivers/net/phy/Kconfig
-index 107880d13..f8bcf5881 100644
+index 421d2b629..e2b3be282 100644
 --- a/drivers/net/phy/Kconfig
 +++ b/drivers/net/phy/Kconfig
 @@ -328,6 +328,13 @@ config AT803X_PHY
@@ -4322,10 +4321,10 @@ index 000000000..b5683a9a6
 +int dsa_oob_tag_pop(struct sk_buff *skb, struct dsa_oob_tag_info *ti);
 +#endif
 diff --git a/include/linux/skbuff.h b/include/linux/skbuff.h
-index 97bfef071..50931eb82 100644
+index 27998f731..84c2c5a3c 100644
 --- a/include/linux/skbuff.h
 +++ b/include/linux/skbuff.h
-@@ -4631,6 +4631,9 @@ enum skb_ext_id {
+@@ -4634,6 +4634,9 @@ enum skb_ext_id {
  #endif
  #if IS_ENABLED(CONFIG_MCTP_FLOWS)
  	SKB_EXT_MCTP,
@@ -4336,7 +4335,7 @@ index 97bfef071..50931eb82 100644
  	SKB_EXT_NUM, /* must be last */
  };
 diff --git a/include/net/dsa.h b/include/net/dsa.h
-index 0b9c6aa27..1588d2f0c 100644
+index 82135fbdb..6e6fa4571 100644
 --- a/include/net/dsa.h
 +++ b/include/net/dsa.h
 @@ -56,6 +56,7 @@ struct phylink_link_state;
@@ -4356,13 +4355,13 @@ index 0b9c6aa27..1588d2f0c 100644
  
  struct dsa_switch;
 diff --git a/net/core/skbuff.c b/net/core/skbuff.c
-index 97b4a42e6..78cf21049 100644
+index 94cc40a6f..0562ab1e8 100644
 --- a/net/core/skbuff.c
 +++ b/net/core/skbuff.c
-@@ -62,8 +62,12 @@
- #include <linux/if_vlan.h>
+@@ -63,8 +63,12 @@
  #include <linux/mpls.h>
  #include <linux/kcov.h>
+ #include <linux/iov_iter.h>
 +#ifdef CONFIG_NET_DSA_TAG_OOB
 +#include <linux/dsa/oob.h>
 +#endif
@@ -4372,7 +4371,7 @@ index 97b4a42e6..78cf21049 100644
  #include <net/dst.h>
  #include <net/sock.h>
  #include <net/checksum.h>
-@@ -4794,6 +4798,9 @@ static const u8 skb_ext_type_len[] = {
+@@ -4809,6 +4813,9 @@ static const u8 skb_ext_type_len[] = {
  #if IS_ENABLED(CONFIG_MCTP_FLOWS)
  	[SKB_EXT_MCTP] = SKB_EXT_CHUNKSIZEOF(struct mctp_flow),
  #endif
@@ -4403,7 +4402,7 @@ index 8e698bea9..2e6e7faa5 100644
  	tristate "Tag driver for Qualcomm Atheros QCA8K switches"
  	help
 diff --git a/net/dsa/Makefile b/net/dsa/Makefile
-index 12e305824..991d94d05 100644
+index 8a1894a42..37daa30a4 100644
 --- a/net/dsa/Makefile
 +++ b/net/dsa/Makefile
 @@ -31,6 +31,7 @@ obj-$(CONFIG_NET_DSA_TAG_MTK) += tag_mtk.o
@@ -4416,7 +4415,7 @@ index 12e305824..991d94d05 100644
  obj-$(CONFIG_NET_DSA_TAG_RTL8_4) += tag_rtl8_4.o
 diff --git a/net/dsa/tag_oob.c b/net/dsa/tag_oob.c
 new file mode 100644
-index 000000000..7ef08ab76
+index 000000000..7b15fb405
 --- /dev/null
 +++ b/net/dsa/tag_oob.c
 @@ -0,0 +1,50 @@
@@ -4428,14 +4427,14 @@ index 000000000..7ef08ab76
 +#include <linux/dsa/oob.h>
 +#include <linux/skbuff.h>
 +
-+#include "slave.h"
 +#include "tag.h"
++#include "user.h"
 +
 +static struct sk_buff *oob_tag_xmit(struct sk_buff *skb,
 +				    struct net_device *dev)
 +{
 +	struct dsa_oob_tag_info *tag_info = skb_ext_add(skb, SKB_EXT_DSA_OOB);
-+	struct dsa_port *dp = dsa_slave_to_port(dev);
++	struct dsa_port *dp = dsa_user_to_port(dev);
 +
 +	tag_info->port = dp->index;
 +
@@ -4450,7 +4449,7 @@ index 000000000..7ef08ab76
 +	if (!tag_info)
 +		return NULL;
 +
-+	skb->dev = dsa_master_find_slave(dev, 0, tag_info->port);
++	skb->dev = dsa_conduit_find_user(dev, 0, tag_info->port);
 +	if (!skb->dev)
 +		return NULL;
 +

@@ -1,8 +1,8 @@
-diff --git a/drivers/firmware/qcom_scm.c b/drivers/firmware/qcom_scm.c
-index 69831f1d9..ed0c93b57 100644
---- a/drivers/firmware/qcom_scm.c
-+++ b/drivers/firmware/qcom_scm.c
-@@ -1481,7 +1481,8 @@ static int qcom_scm_probe(struct platform_device *pdev)
+diff --git a/drivers/firmware/qcom/qcom_scm.c b/drivers/firmware/qcom/qcom_scm.c
+index 520de9b56..c3017fe99 100644
+--- a/drivers/firmware/qcom/qcom_scm.c
++++ b/drivers/firmware/qcom/qcom_scm.c
+@@ -1906,7 +1906,8 @@ static int qcom_scm_probe(struct platform_device *pdev)
  static void qcom_scm_shutdown(struct platform_device *pdev)
  {
  	/* Clean shutdown, disable download mode to allow normal restart */

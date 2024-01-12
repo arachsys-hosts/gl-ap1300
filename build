@@ -19,7 +19,7 @@ if (( $$ != 1 )); then
   TMP=$(mktemp -d build-XXXXXX)
   trap 'rm -f -r $TMP' EXIT
 
-  pkg system $TMP/rootfs dnsmasq file hostap iproute2 iputils-ping iw \
+  pkg system $TMP/rootfs curl dnsmasq file hostap iproute2 iputils-ping iw \
     ldns-tools kakoune mtr nftables openntpd openssh rsync shadow tcpdump \
     tinymbim tmux wireguard
   update-etc $TMP/rootfs/etc
@@ -38,11 +38,11 @@ pkg unpack -c /src/cache -d mtd-utils \
 printf '%s\0' /src/patches/mtd-* | xargs -n 1 -0 pkg apply -d mtd-utils
 
 pkg unpack -c /src/cache -d linux \
-  https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.8.tar.xz
+  https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.7.tar.xz
  printf '%s\0' /src/patches/linux-* | xargs -n 1 -0 pkg apply -d linux
 
-pkg unpack -c /src/cache -d u-boot u-boot-2023.10.tar.gz \
-  https://github.com/u-boot/u-boot/archive/refs/tags/v2023.10.tar.gz
+pkg unpack -c /src/cache -d u-boot u-boot-2024.01.tar.gz \
+  https://github.com/u-boot/u-boot/archive/refs/tags/v2024.01.tar.gz
 
 if [[ ! -f /src/bin/uboot.img ]]; then
   echo "Downloading uboot.img from https://github.com/gl-inet/uboot-ipq40xx/:" >&2
@@ -71,7 +71,8 @@ cd -
 
 ln -f -s etc/init rootfs/init
 tar -c -f - --format=newc --strip-components=1 rootfs \
-  | gzip -c -n -9 >/src/bin/initramfs.cpio.gz
+  | zstd -c -19 >/src/bin/initramfs.cpio.zst
+truncate -s +4k /src/bin/initramfs.cpio.zst
 rm -f rootfs/init
 
 cp /src/config/kernel.cfg linux/.config && echo 0 >linux/.version
