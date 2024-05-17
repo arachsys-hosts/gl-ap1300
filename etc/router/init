@@ -51,11 +51,14 @@ start() {
   ssh-keygen -A && $(type -P sshd)
   dnsmasq
 
-  if wwan /dev/cdc-wdm0 start; then
+  if wwan /dev/wwan0mbim0 start; then
+    if mbim /dev/wwan0mbim0 config | grep -q '^gateway [0-9a-f:]*$'; then
+      ip address add 2001:2::1/64 dev br0
+    fi
     while true; do
-      while mbim /dev/cdc-wdm0 config; do read -t 30; done
+      while mbim /dev/wwan0mbim0 config; do read -t 30; done
       logger -p daemon.warn -t watchdog 'Restarting wwan connection'
-      wwan /dev/cdc-wdm0 start
+      wwan /dev/wwan0mbim0 start
     done <><(:) >/dev/null 2>&1 & disown
   fi
 

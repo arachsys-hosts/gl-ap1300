@@ -12,6 +12,7 @@ table inet filter {
     ct status dnat accept
     iifname != wwan0 accept
     icmp type echo-request accept
+    icmpv6 type echo-request accept
     meta l4proto tcp reject with tcp reset
     reject
   }
@@ -27,6 +28,6 @@ table inet filter {
 
   chain postrouting {
     type nat hook postrouting priority srcnat
-    oifname wwan0 meta nfproto ipv4 masquerade
+    oifname wwan0 masquerade
   }
 }
