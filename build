@@ -16,76 +16,83 @@ if (( $$ != 1 )); then
     exit 1
   fi
 
-  TMP=$(mktemp -d build-XXXXXX)
-  trap 'rm -f -r $TMP' EXIT
-
-  pkg system $TMP/rootfs curl dnsmasq file hostap iproute2 iputils-ping iw \
-    ldns-tools kakoune mtr nftables openntpd openssh rsync shadow tcpdump \
-    tinymbim tmux wireguard
-  update-etc $TMP/rootfs/etc
-  rm -f -r $TMP/rootfs/{etc/resolv.conf,lib/{include,static},run,tmp,var}
-  mkdir -p $TMP/rootfs/{dev,home/root,proc,run,sys,tmp}
-  cp -d -R -T etc/base $TMP/rootfs/etc && chmod 0600 $TMP/rootfs/etc/shadow
-  ln -s run $TMP/rootfs/var
+  if [[ ! -d rootfs ]]; then
+    pkg system rootfs curl dnsmasq file hostap iproute2 iputils-ping iw \
+      ldns-tools kakoune mtr nftables openntpd openssh rsync shadow tcpdump \
+      tinymbim tmux wireguard
+    update-etc rootfs/etc
+    rm -f -r rootfs/{etc/resolv.conf,lib/{include,static},run,tmp,var}
+    mkdir -p rootfs/{dev,home/root,proc,run,sys,tmp}
+    cp -d -R -T etc/base rootfs/etc && chmod 0600 rootfs/etc/shadow
+    ln -s run rootfs/var
+  fi
 
   pkg shell -s . build bc bison dtc flex m4 perl -- \
-    env -C $TMP MAKEFLAGS=-j$((1 + $(nproc))) "/src/${0##*/}" "$@"
+    env MAKEFLAGS=-j$((1 + $(nproc))) "/src/${0##*/}" "$@"
   exit 0
 fi
 
-pkg unpack -c /src/cache -d mtd-utils \
-  https://infraroot.at/pub/mtd/mtd-utils-2.2.0.tar.bz2
-printf '%s\0' /src/patches/mtd-* | xargs -n 1 -0 pkg apply -d mtd-utils
+if [[ ! -d src ]]; then
+  TMP=$(mktemp -d src-XXXXXX)
+  trap "rm -f -r $TMP" EXIT
 
-pkg unpack -c /src/cache -d linux \
-  https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.8.tar.xz
-printf '%s\0' /src/patches/linux-* | xargs -n 1 -0 pkg apply -d linux
+  pkg unpack -c cache -d $TMP/mtd-utils \
+    https://infraroot.at/pub/mtd/mtd-utils-2.2.0.tar.bz2
+  printf '%s\0' patches/mtd-* | xargs -n 1 -0 pkg apply -d $TMP/mtd-utils
 
-pkg unpack -c /src/cache -d u-boot u-boot-2024.04.tar.gz \
-  https://github.com/u-boot/u-boot/archive/refs/tags/v2024.04.tar.gz
+  pkg unpack -c cache -d $TMP/linux \
+    https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.12.tar.xz
+  printf '%s\0' patches/linux-* | xargs -n 1 -0 pkg apply -d $TMP/linux
 
-if [[ ! -f /src/bin/uboot.img ]]; then
-  echo "Downloading uboot.img from https://github.com/gl-inet/uboot-ipq40xx/:" >&2
-  curl -o /src/bin/uboot.img.tmp -L \
-    https://github.com/gl-inet/uboot-ipq40xx/raw/6913cdfb/uboot-gl-ap1300-\
-b1300-s1300-b2200-20220826-md5-b599d2fa9955ca701fc25e6d29659c86.bin
-  mv -f /src/bin/uboot.img.tmp /src/bin/uboot.img
+  pkg unpack -c cache -d $TMP/u-boot u-boot-2024.04.tar.gz \
+    https://github.com/u-boot/u-boot/archive/refs/tags/v2024.04.tar.gz
+
+  mv $TMP src
+  trap - EXIT
 fi
 
-printf '\0\0\0\0' >/src/bin/environ.img
+if [[ ! -f bin/uboot.img ]]; then
+  echo "Downloading uboot.img from https://github.com/gl-inet/uboot-ipq40xx/:" >&2
+  curl -o bin/uboot.img.tmp -L \
+    https://github.com/gl-inet/uboot-ipq40xx/raw/6913cdfb/uboot-gl-ap1300-\
+b1300-s1300-b2200-20220826-md5-b599d2fa9955ca701fc25e6d29659c86.bin
+  mv -f bin/uboot.img.tmp bin/uboot.img
+fi
+
+printf '\0\0\0\0' >bin/environ.img
 while read -r KEY VALUE; do
   [[ -n $KEY ]] && printf '%s=%s\0' "$KEY" "$VALUE"
-done </src/config/environ >>/src/bin/environ.img
-truncate -s 65536 /src/bin/environ.img
-tail -c +5 /src/bin/environ.img | gzip -c | tail -c 8 \
-  | dd bs=4 conv=notrunc count=1 of=/src/bin/environ.img 2>/dev/null
+done <config/environ >>bin/environ.img
+truncate -s 65536 bin/environ.img
+tail -c +5 bin/environ.img | gzip -c | tail -c 8 \
+  | dd bs=4 conv=notrunc count=1 of=bin/environ.img 2>/dev/null
 
-cd mtd-utils
+cd src/mtd-utils
 bash configure --without-jffs --without-lzo \
   UUID_CFLAGS=-I/lib/include/uuid UUID_LIBS=-luuid \
   ZLIB_CFLAGS=-I/lib/include ZLIB_LIBS=-lz \
   ZSTD_CFLAGS=-I/lib/include ZSTD_LIBS=-lzstd
 make flashcp mkfs.ubifs ubinize ubi{attach,detach,format,updatevol}
-install -s -t ../rootfs/bin flashcp ubi{attach,detach,format,updatevol}
+install -s -t /src/rootfs/bin flashcp ubi{attach,detach,format,updatevol}
 cd -
 
 ln -f -s etc/init rootfs/init
 tar -c -f - --format=newc --strip-components=1 rootfs \
-  | zstd -c -19 >/src/bin/initramfs.cpio.zst
-truncate -s +4k /src/bin/initramfs.cpio.zst
+  | zstd -c -19 >bin/initramfs.cpio.zst
+truncate -s +4k bin/initramfs.cpio.zst
 rm -f rootfs/init
 
-cp /src/config/kernel.cfg linux/.config && echo 0 >linux/.version
-make -C linux olddefconfig Image dtbs ARCH=arm
-gzip -c -n -9 linux/arch/arm/boot/Image >/src/bin/kernel.gz
-cp linux/arch/arm/boot/dts/qcom/qcom-ipq4018-gl-ap1300.dtb \
-  /src/bin/gl-ap1300.dtb
+cp config/kernel.cfg src/linux/.config && echo 0 >src/linux/.version
+make -C src/linux olddefconfig Image dtbs ARCH=arm
+gzip -c -n -9 src/linux/arch/arm/boot/Image >bin/kernel.gz
+cp src/linux/arch/arm/boot/dts/qcom/qcom-ipq4018-gl-ap1300.dtb \
+  bin/gl-ap1300.dtb
 
-make -C u-boot tools-only_defconfig tools-only CC=cc \
+make -C src/u-boot tools-only_defconfig tools-only CC=cc \
   CONFIG_TOOLS_MKEFICAPSULE=n SDL_CONFIG=false
-u-boot/tools/mkimage -f /src/config/initramfs.its /src/bin/initramfs.itb
-u-boot/tools/mkimage -f /src/config/kernel.its /src/bin/kernel.itb
+src/u-boot/tools/mkimage -f config/initramfs.its bin/initramfs.itb
+src/u-boot/tools/mkimage -f config/kernel.its bin/kernel.itb
 
-mtd-utils/mkfs.ubifs -o /src/bin/rootfs.ubifs -r rootfs -m 2048 \
-  -e 126976 -x zstd -c 1023
-mtd-utils/ubinize -o /src/bin/image.ubi -m 2048 -p 131072 /src/config/image.cfg
+src/mtd-utils/mkfs.ubifs -o bin/rootfs.ubifs -r rootfs -m 2048 -e 126976 \
+  -x zstd -c 1023
+src/mtd-utils/ubinize -o bin/image.ubi -m 2048 -p 131072 config/image.cfg
