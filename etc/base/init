@@ -17,10 +17,7 @@ start() {
   ln -f -n -s fd/1 /dev/stdout
   ln -f -n -s fd/2 /dev/stderr
 
-  echo timer >/sys/class/leds/white\:power/trigger
-
-  mount -o remount,rw /
-  mount -a -t nonfs
+  echo timer >/sys/class/leds/white:power/trigger
 
   if [[ -c /dev/watchdog ]] && exec >/dev/watchdog && wait; then
     trap 'printf V && exit' TERM
@@ -42,7 +39,7 @@ start() {
   syslogd -k
   ssh-keygen -A && $(type -P sshd)
 
-  echo default-on >/sys/class/leds/white\:power/trigger
+  echo default-on >/sys/class/leds/white:power/trigger
 
   trap 'exec "$0" stop reboot' INT
   trap 'exec "$0" stop poweroff' TERM

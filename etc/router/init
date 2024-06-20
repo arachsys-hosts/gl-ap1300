@@ -17,10 +17,7 @@ start() {
   ln -f -n -s fd/1 /dev/stdout
   ln -f -n -s fd/2 /dev/stderr
 
-  echo timer >/sys/class/leds/white\:power/trigger
-
-  mount -o remount,ro /
-  mount -a -t nonfs
+  echo timer >/sys/class/leds/white:power/trigger
 
   if [[ -c /dev/watchdog ]] && exec >/dev/watchdog && wait; then
     trap 'printf V && exit' TERM
@@ -42,33 +39,34 @@ start() {
 
   ip address add 192.168.1.1/24 dev br0
 
-  echo netdev >/sys/class/leds/white\:wan/trigger
-  echo wwan0 >/sys/class/leds/white\:wan/device_name
-  echo 1 >/sys/class/leds/white\:wan/rx
-  echo 1 >/sys/class/leds/white\:wan/tx
+  echo netdev >/sys/class/leds/white:wan/trigger
+  echo wwan0 >/sys/class/leds/white:wan/device_name
+  echo 1 >/sys/class/leds/white:wan/link
+  echo 1 >/sys/class/leds/white:wan/rx
+  echo 1 >/sys/class/leds/white:wan/tx
 
   syslogd -k
   ssh-keygen -A && $(type -P sshd)
+  hostapd -s -B /etc/ap0.conf /etc/ap1.conf
   dnsmasq
 
   if wwan /dev/wwan0mbim0 start; then
     if mbim /dev/wwan0mbim0 config | grep -q '^gateway [0-9a-f:]*$'; then
       ip address add 2001:2::1/64 dev br0
     fi
+
     while true; do
-      while mbim /dev/wwan0mbim0 config; do read -t 30; done
-      logger -p daemon.warn -t watchdog 'Restarting wwan connection'
-      wwan /dev/wwan0mbim0 start
+      if ! mbim /dev/wwan0mbim0 config; then
+        logger -p daemon.warn -t watchdog 'Restarting wwan connection'
+        wwan /dev/wwan0mbim0 start
+      fi
+      read -t 30
     done <><(:) >/dev/null 2>&1 & disown
+
+    ntpd -p /run/ntpd.pid
   fi
 
-  hostapd -s -B /etc/ap0.conf /etc/ap1.conf
-  ip link set wlan0 type bridge_slave hairpin on mcast_to_unicast on
-  ip link set wlan1 type bridge_slave hairpin on mcast_to_unicast on
-
-  daemon await-net ntpd -p /run/ntpd.pid
-
-  echo default-on >/sys/class/leds/white\:power/trigger
+  echo default-on >/sys/class/leds/white:power/trigger
 
   trap 'exec "$0" stop reboot' INT
   trap 'exec "$0" stop poweroff' TERM

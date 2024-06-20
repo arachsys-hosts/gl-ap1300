@@ -4,7 +4,7 @@ set -o pipefail
 export PATH=/bin
 
 start() {
-  hostname hall-ap
+  hostname ap
 
   mount -a -t proc
   mount -a -m -t devpts,devtmpfs,sysfs,tmpfs
@@ -17,10 +17,7 @@ start() {
   ln -f -n -s fd/1 /dev/stdout
   ln -f -n -s fd/2 /dev/stderr
 
-  echo timer >/sys/class/leds/white\:power/trigger
-
-  mount -o remount,ro /
-  mount -a -t nonfs
+  echo timer >/sys/class/leds/white:power/trigger
 
   if [[ -c /dev/watchdog ]] && exec >/dev/watchdog && wait; then
     trap 'printf V && exit' TERM
@@ -44,19 +41,18 @@ start() {
   ssh-keygen -A && $(type -P sshd)
 
   hostapd -s -B /etc/ap0.conf /etc/ap1.conf
-  ip link set wlan0 type bridge_slave hairpin on mcast_to_unicast on
-  ip link set wlan1 type bridge_slave hairpin on mcast_to_unicast on
 
   iw wlan0 interface add wlan2 type managed 4addr on
   ip link set wlan2 addr 94:83:c4:1b:00:6f master br0 up
   wpad -b br0 -c /etc/uplink.conf -i wlan2 -s -B
 
-  echo netdev >/sys/class/leds/white\:wan/trigger
-  echo wlan2 >/sys/class/leds/white\:wan/device_name
-  echo 1 >/sys/class/leds/white\:wan/tx
-  echo 1 >/sys/class/leds/white\:wan/rx
+  echo netdev >/sys/class/leds/white:wan/trigger
+  echo wlan2 >/sys/class/leds/white:wan/device_name
+  echo 1 >/sys/class/leds/white:wan/link
+  echo 1 >/sys/class/leds/white:wan/rx
+  echo 1 >/sys/class/leds/white:wan/tx
 
-  daemon await-net ntpd -p /run/ntpd.pid
+  ntpd -p /run/ntpd.pid
 
   echo default-on >/sys/class/leds/white\:power/trigger
 
